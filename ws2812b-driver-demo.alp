@@ -58,6 +58,12 @@
                     "type": "Component",
                     "path": "Miscellaneous/counter.luc"
                 }
+            },
+            {
+                "file": {
+                    "type": "DiskFile",
+                    "path": "source/index_reverser.v"
+                }
             }
         ],
         "constraintFiles": [

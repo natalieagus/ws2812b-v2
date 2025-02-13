@@ -20,8 +20,7 @@
 
 module reverser #(
   COLUMN_DIMENSION = 4 : COLUMN_DIMENSION > 0,
-  ROW_DIMENSION = 4 : ROW_DIMENSION > 0,
-  ENCODING_AMOUNT = 4 : ENCODING_AMOUNT > 0
+  ROW_DIMENSION = 4 : ROW_DIMENSION > 0
   )(
     input original_pixel_address[$clog2(COLUMN_DIMENSION*ROW_DIMENSION)],
     input activate,

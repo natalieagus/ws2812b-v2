@@ -34,9 +34,6 @@ module manual_mode (
         .rst(rst){
 
             dff led_encoding[PIXEL_COUNT*$clog2(ENCODING_AMOUNT)](#INIT(16hABCD)) 
-            
-            // a state to toggle reverse 
-            dff matrix_type_used(#INIT(0))
         }
         
     }
@@ -52,7 +49,6 @@ module manual_mode (
         
   
         led_encoding.d = led_encoding.q
-        matrix_type_used.d = matrix_type_used.q
         
         driver.update = 1 // always update by default
         driver.clear = 0 // do not clear by default
