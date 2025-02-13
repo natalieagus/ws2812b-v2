@@ -1,0 +1,96 @@
+module manual_mode (
+    input clk,              // 100MHz clock
+    input rst,            // reset button (active low)
+    output led[8],          // 8 user controllable LEDs
+    output io_led[3][8],    // LEDs on IO Shield
+    output io_segment[8],   // 7-segment LEDs on IO Shield
+    output io_select[4],    // Digit select on IO Shield
+    input io_button[5],     // 5 buttons on IO Shield
+    input io_dip[3][8],      // DIP switches on IO Shield
+    output data
+) {
+    const COLUMN_DIMENSION = 16 // how many "columns"? 
+    const ROW_DIMENSION = 16 // how many "rows"?
+    
+    // WHITE (11), BLUE (10), RED (01), GREEN (00)
+    const COLOR_ENCODING = {24hFFFFFF, 24hFF0000, 24h00FF00, 24h0000FF} 
+    const PIXEL_COUNT = COLUMN_DIMENSION *  ROW_DIMENSION   
+    const ENCODING_AMOUNT = $width(COLOR_ENCODING, 0)
+    
+    sig encoded_pixel_address[$clog2(PIXEL_COUNT)*$clog2(ENCODING_AMOUNT)]
+    sig current_color_encoding[$clog2(ENCODING_AMOUNT)]
+
+    
+    const CLK_FREQ = $is_sim() ? 1000 : 100000000
+    reverser index_reverser(#COLUMN_DIMENSION(COLUMN_DIMENSION), #ROW_DIMENSION(ROW_DIMENSION)) 
+    
+    .clk(clk){
+        // user inputs 
+        button_conditioner latch_button(#CLK_FREQ(CLK_FREQ), .in(io_button[0]))
+        edge_detector latch_button_edge(#RISE(1), #FALL(0), .in(latch_button.out))
+        button_conditioner clear_button(#CLK_FREQ(CLK_FREQ), .in(io_button[1]))
+        edge_detector clear_button_edge(#RISE(1), #FALL(0), .in(clear_button.out))
+        
+        .rst(rst){
+
+            dff led_encoding[PIXEL_COUNT*$clog2(ENCODING_AMOUNT)](#INIT(16hABCD)) 
+            
+            // a state to toggle reverse 
+            dff matrix_type_used(#INIT(0))
+        }
+        
+    }
+    ws2812b_driver driver(#PIXEL_COUNT(PIXEL_COUNT), .rst(rst), .clk(clk))
+    
+    always {
+        
+        led = 8h00            
+        io_led = 3x{{8h00}}
+        io_segment = 8hff
+        io_select = 4hf
+        data = 0
+        
+  
+        led_encoding.d = led_encoding.q
+        matrix_type_used.d = matrix_type_used.q
+        
+        driver.update = 1 // always update by default
+        driver.clear = 0 // do not clear by default
+        
+        if (latch_button_edge.out){
+            led_encoding.d = ROW_DIMENSIONx{c{io_dip[1], io_dip[0]}}
+        }
+        
+        if (clear_button_edge.out){
+            driver.clear = 1
+        }
+        
+        
+        // connect reverser to led_strip 
+        index_reverser.original_pixel_address = driver.pixel_address
+        index_reverser.activate =  io_dip[2][7] // reverser has problem
+        //encoded_pixel_address = index_reverser.effective_pixel_address * $clog2(ENCODING_AMOUNT)
+        
+        encoded_pixel_address = driver.pixel_address
+        
+        // get current color in encoding value for this pixel
+        repeat(index, $clog2(ENCODING_AMOUNT)){
+            current_color_encoding[index] = led_encoding.q[encoded_pixel_address+index]
+        }
+        
+        // based on the encoding extracted from dff led_encoding, we get the 24bit color value
+        driver.color = COLOR_ENCODING[current_color_encoding] 
+        data = driver.data
+        
+        // debug 
+        // show the current LED color
+        io_led[0] = led_encoding.q[7:0]
+        io_led[1] = led_encoding.q[15:8]
+        io_led[2] = led_encoding.q[23:16]
+        
+
+        io_led[2] = encoded_pixel_address
+
+        
+    }
+}
