@@ -17,12 +17,11 @@ module manual_mode (
     const PIXEL_COUNT = COLUMN_DIMENSION *  ROW_DIMENSION   
     const ENCODING_AMOUNT = $width(COLOR_ENCODING, 0)
     
-    sig encoded_pixel_address[$clog2(PIXEL_COUNT)*$clog2(ENCODING_AMOUNT)]
-    sig current_color_encoding[$clog2(ENCODING_AMOUNT)]
+    sig pixel_address[$clog2(PIXEL_COUNT)]
+    sig current_pixel_color_encoding[$clog2(ENCODING_AMOUNT)]
 
-    
     const CLK_FREQ = $is_sim() ? 1000 : 100000000
-    reverser index_reverser(#COLUMN_DIMENSION(COLUMN_DIMENSION), #ROW_DIMENSION(ROW_DIMENSION)) 
+    index_reverser index_reverser(#COLUMN_DIMENSION(COLUMN_DIMENSION), #SIZE($clog2(PIXEL_COUNT))) 
     
     .clk(clk){
         // user inputs 
@@ -32,13 +31,14 @@ module manual_mode (
         edge_detector clear_button_edge(#RISE(1), #FALL(0), .in(clear_button.out))
         
         .rst(rst){
-
-            dff led_encoding[PIXEL_COUNT*$clog2(ENCODING_AMOUNT)](#INIT(16hABCD)) 
+            dff on_off_toggle
+            dff led_encoding[PIXEL_COUNT*$clog2(ENCODING_AMOUNT)](#INIT(0)) 
         }
         
     }
-    ws2812b_driver driver(#PIXEL_COUNT(PIXEL_COUNT), .rst(rst), .clk(clk))
     
+    ws2812b_driver driver(#PIXEL_COUNT(PIXEL_COUNT), .rst(rst), .clk(clk))
+   
     always {
         
         led = 8h00            
@@ -49,33 +49,40 @@ module manual_mode (
         
   
         led_encoding.d = led_encoding.q
-        
-        driver.update = 1 // always update by default
-        driver.clear = 0 // do not clear by default
+        on_off_toggle.d = on_off_toggle.q
+
+        driver.update = on_off_toggle.q 
+        driver.clear = 0
         
         if (latch_button_edge.out){
-            led_encoding.d = ROW_DIMENSIONx{c{io_dip[1], io_dip[0]}}
+            led_encoding.d = ROW_DIMENSIONx{c{io_dip[1], io_dip[1], io_dip[0], io_dip[0]}}
         }
         
         if (clear_button_edge.out){
             driver.clear = 1
+            on_off_toggle.d = ~on_off_toggle.q
         }
+
+        // connect reverser to driver
+        index_reverser.input_address = driver.pixel_address
         
-        
-        // connect reverser to led_strip 
-        index_reverser.original_pixel_address = driver.pixel_address
-        index_reverser.activate =  io_dip[2][7] // reverser has problem
-        //encoded_pixel_address = index_reverser.effective_pixel_address * $clog2(ENCODING_AMOUNT)
-        
-        encoded_pixel_address = driver.pixel_address
+        if (io_dip[2][7]){
+           pixel_address = index_reverser.output_address
+        }
+        else{
+            pixel_address = driver.pixel_address
+        }
         
         // get current color in encoding value for this pixel
         repeat(index, $clog2(ENCODING_AMOUNT)){
-            current_color_encoding[index] = led_encoding.q[encoded_pixel_address+index]
+            current_pixel_color_encoding[index] = led_encoding.q[2*pixel_address+index]
         }
         
         // based on the encoding extracted from dff led_encoding, we get the 24bit color value
-        driver.color = COLOR_ENCODING[current_color_encoding] 
+        driver.color = COLOR_ENCODING[current_pixel_color_encoding] 
+        
+        //driver.color = COLOR_ENCODING[LED_COLORS[pixel_address[$clog2($width(LED_COLORS,0))-1:0]]]
+        
         data = driver.data
         
         // debug 
@@ -84,8 +91,12 @@ module manual_mode (
         io_led[1] = led_encoding.q[15:8]
         io_led[2] = led_encoding.q[23:16]
         
-
-        io_led[2] = encoded_pixel_address
+        // or show the addresses 
+        io_led[0] = index_reverser.output_address
+        io_led[1] = current_pixel_color_encoding
+        io_led[2] = pixel_address
+        
+        led[7] = on_off_toggle.q
 
         
     }

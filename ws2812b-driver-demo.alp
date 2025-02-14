@@ -26,12 +26,6 @@
             {
                 "file": {
                     "type": "DiskFile",
-                    "path": "source/reverser.luc"
-                }
-            },
-            {
-                "file": {
-                    "type": "DiskFile",
                     "path": "source/manual_mode.luc"
                 }
             },
@@ -55,14 +49,14 @@
             },
             {
                 "file": {
-                    "type": "Component",
-                    "path": "Miscellaneous/counter.luc"
+                    "type": "DiskFile",
+                    "path": "source/index_reverser_buggy.luc"
                 }
             },
             {
                 "file": {
                     "type": "DiskFile",
-                    "path": "source/index_reverser.v"
+                    "path": "source/index_reverser.luc"
                 }
             }
         ],
