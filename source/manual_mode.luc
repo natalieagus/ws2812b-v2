@@ -1,4 +1,7 @@
-module manual_mode (
+module manual_mode#(
+    COLUMN_DIMENSION = 16,
+    ROW_DIMENSION = 16
+) (
     input clk,              // 100MHz clock
     input rst,            // reset button (active low)
     output led[8],          // 8 user controllable LEDs
@@ -9,8 +12,6 @@ module manual_mode (
     input io_dip[3][8],      // DIP switches on IO Shield
     output data
 ) {
-    const COLUMN_DIMENSION = 16 // how many "columns"? 
-    const ROW_DIMENSION = 16 // how many "rows"?
     
     // WHITE (11), BLUE (10), RED (01), GREEN (00)
     const COLOR_ENCODING = {24hFFFFFF, 24hFF0000, 24h00FF00, 24h0000FF} 
