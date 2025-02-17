@@ -37,4 +37,4 @@ You might need to reverse the index/pixel address of every other row since the m
 - 8 to 15 is reversed to 15 to 8
 - 24 to 31 is reversed to 31 to 24
 
-Index 0 to 7 remains the same, so is 16 to 23.
+Indexes of even rows (row 0, 2, 4, ...) remains the same. For instance, index 0 to 7 remains the same, so is 16 to 23 and so on. 
