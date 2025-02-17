@@ -1,7 +1,8 @@
 module manual_mode#(
     COLUMN_DIMENSION = 16d16 : COLUMN_DIMENSION > 0,
     ROW_DIMENSION = 16d16 : ROW_DIMENSION > 0,
-    PIXEL_COUNT = 16d256 : PIXEL_COUNT > 0
+    PIXEL_COUNT = 16d256 : PIXEL_COUNT > 0,
+    BUFFER_SIZE = 1024 : BUFFER_SIZE > 0 // ensure this value is larger than PIXEL_COUNT * $clog2(COLOR_ENCODING)
 ) (
     input clk,              // 100MHz clock
     input rst,            // reset button (active low)
@@ -18,7 +19,7 @@ module manual_mode#(
     const COLOR_ENCODING = {24hFFFFFF, 24hFF0000, 24h00FF00, 24h0000FF}    
     const ENCODING_AMOUNT = $width(COLOR_ENCODING, 0)
     
-    sig pixel_address[1024]
+    sig pixel_address[BUFFER_SIZE]
     sig current_pixel_color_encoding[$clog2(ENCODING_AMOUNT)]
 
     const CLK_FREQ = $is_sim() ? 1000 : 100000000
@@ -33,7 +34,7 @@ module manual_mode#(
         
         .rst(rst){
             dff on_off_toggle
-            dff led_encoding[1024](#INIT(2)) 
+            dff led_encoding[BUFFER_SIZE](#INIT(2)) 
         }
         
     }
