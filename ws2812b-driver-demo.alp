@@ -50,12 +50,6 @@
             {
                 "file": {
                     "type": "DiskFile",
-                    "path": "source/index_reverser_buggy.luc"
-                }
-            },
-            {
-                "file": {
-                    "type": "DiskFile",
                     "path": "source/index_reverser.luc"
                 }
             }
