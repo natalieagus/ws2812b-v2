@@ -33,7 +33,7 @@ module manual_mode#(
         
         .rst(rst){
             dff on_off_toggle
-            dff led_encoding[PIXEL_COUNT*$clog2(ENCODING_AMOUNT)](#INIT(0)) 
+            dff led_encoding[PIXEL_COUNT*$clog2(ENCODING_AMOUNT)](#INIT(1)) 
         }
         
     }
@@ -81,7 +81,6 @@ module manual_mode#(
         
         // based on the encoding extracted from dff led_encoding, we get the 24bit color value
         driver.color = COLOR_ENCODING[current_pixel_color_encoding] 
-        
         //driver.color = COLOR_ENCODING[LED_COLORS[pixel_address[$clog2($width(LED_COLORS,0))-1:0]]]
         
         data = driver.data
@@ -92,11 +91,13 @@ module manual_mode#(
         io_led[1] = led_encoding.q[15:8]
         io_led[2] = led_encoding.q[23:16]
         
-        // or show the addresses 
-        io_led[0] = index_reverser.output_address
-        io_led[1] = current_pixel_color_encoding
-        io_led[2] = pixel_address
-        
+        if(io_dip[0][0]){
+            // or show the addresses 
+            io_led[0] = index_reverser.output_address
+            io_led[1] = current_pixel_color_encoding
+            io_led[2] = pixel_address 
+        }
+
         led[7] = on_off_toggle.q
 
         
