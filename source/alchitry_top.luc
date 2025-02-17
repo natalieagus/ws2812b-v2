@@ -14,15 +14,18 @@ module alchitry_top (
 
     sig rst                 // reset signal
     
-    const COLUMN_DIMENSION = 16 // how many "columns"? 
-    const ROW_DIMENSION = 16 // how many "rows"?
+    const COLUMN_DIMENSION = 5d16 // how many "columns"? 
+    const ROW_DIMENSION = 5d16 // how many "rows"?
+    const SIZE = 9d256 // how many LEDs in total? 
     
     .clk(clk) {
         // The reset conditioner is used to synchronize the reset signal to the FPGA
         // clock. This ensures the entire FPGA comes out of reset at the same time.
         reset_conditioner reset_cond
         .rst(rst){
-            manual_mode manual_mode(.io_button(io_button), .io_dip(io_dip), #COLUMN_DIMENSION(COLUMN_DIMENSION), #ROW_DIMENSION(ROW_DIMENSION))
+            manual_mode manual_mode(.io_button(io_button), .io_dip(io_dip), 
+                #COLUMN_DIMENSION(COLUMN_DIMENSION), #ROW_DIMENSION(ROW_DIMENSION),
+            #SIZE(SIZE))
         }
     }
     
