@@ -19,7 +19,6 @@ module ws2812b_driver #(
     output done // this turns to 1 once we have refreshed all pixels in the LED
 ) {
     
-    
     enum States {
         SEND_PIXEL,
         RESET,
@@ -32,7 +31,7 @@ module ws2812b_driver #(
             dff pixel_address_ctr[$clog2(PIXEL_COUNT)](#INIT(0))
             dff bit_ctr[5]
             dff ctr[7]
-            dff rst_ctr [$clog2(5000)] //reset requires 50us of zeroes 
+            dff rst_ctr [$clog2(5000)] // reset requires 50us of zeroes 
             dff update_request(#INIT(0)) // to store update request so we don't miss it 
             dff clear_request(#INIT(1)) // to store clear request so we don't miss it, initialised to 1 so we always clear LED upon boot
         }

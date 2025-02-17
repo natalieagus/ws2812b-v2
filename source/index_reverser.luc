@@ -1,5 +1,5 @@
 module index_reverser#(
-    SIZE = 8 : SIZE > 1, 
+    SIZE = 8 : SIZE > 1, // width of input and output ports
     COLUMN_DIMENSION = 8 : COLUMN_DIMENSION > 1
 ) (
     input input_address[SIZE],

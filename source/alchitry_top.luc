@@ -16,7 +16,7 @@ module alchitry_top (
     
     const COLUMN_DIMENSION = 5d16 // how many "columns"? 
     const ROW_DIMENSION = 5d16 // how many "rows"?
-    const SIZE = 9d256 // how many LEDs in total? 
+    const PIXEL_COUNT = 10d256 // how many LEDs in total? 
     
     .clk(clk) {
         // The reset conditioner is used to synchronize the reset signal to the FPGA
@@ -25,7 +25,7 @@ module alchitry_top (
         .rst(rst){
             manual_mode manual_mode(.io_button(io_button), .io_dip(io_dip), 
                 #COLUMN_DIMENSION(COLUMN_DIMENSION), #ROW_DIMENSION(ROW_DIMENSION),
-            #SIZE(SIZE))
+            #PIXEL_COUNT(PIXEL_COUNT))
         }
     }
     
