@@ -52,6 +52,12 @@
                     "type": "DiskFile",
                     "path": "source/index_reverser.luc"
                 }
+            },
+            {
+                "file": {
+                    "type": "DiskFile",
+                    "path": "source/static_mode.luc"
+                }
             }
         ],
         "constraintFiles": [

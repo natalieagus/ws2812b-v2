@@ -11,7 +11,7 @@ module alchitry_top (
     input io_dip[3][8],      // DIP switches on IO Shield
     output data
 ) {
-
+    
     sig rst                 // reset signal
     
     const COLUMN_DIMENSION = 5d16 // how many "columns"? 
@@ -25,7 +25,10 @@ module alchitry_top (
         .rst(rst){
             manual_mode manual_mode(.io_button(io_button), .io_dip(io_dip), 
                 #COLUMN_DIMENSION(COLUMN_DIMENSION), #ROW_DIMENSION(ROW_DIMENSION),
-            #PIXEL_COUNT(PIXEL_COUNT))
+                #PIXEL_COUNT(PIXEL_COUNT))
+            static_mode static_mode(.io_button(io_button), .io_dip(io_dip), 
+                #COLUMN_DIMENSION(COLUMN_DIMENSION), #ROW_DIMENSION(ROW_DIMENSION),
+                #PIXEL_COUNT(PIXEL_COUNT))
         }
     }
     
@@ -34,13 +37,27 @@ module alchitry_top (
         rst = reset_cond.out    // conditioned reset
         
         usb_tx = usb_rx         // loop serial port
+        io_segment = 8hF
+        io_select = 4hF
+        led = 8h00
+        data = 0
+        io_led = 3x{{8h00}}
         
-        io_segment = manual_mode.io_segment
-        io_select = manual_mode.io_select
+        case (io_dip[2][2:0]){
+            b000: 
+                io_segment = static_mode.io_segment
+                io_select = static_mode.io_select
+                data = static_mode.data
+                led = static_mode.led
+                io_led = static_mode.io_led 
+            b001:
+                io_segment = manual_mode.io_segment
+                io_select = manual_mode.io_select
+                data = manual_mode.data
+                led = manual_mode.led
+                io_led = manual_mode.io_led 
+        }
         
-        data = manual_mode.data
-        led = manual_mode.led
-        io_led = manual_mode.io_led 
         
     }
 }
