@@ -36,18 +36,18 @@ module ram_mode #(
             // left ---> x++ 
             // down ---> y++ 
             // up ---> y--
-            dff player_x_pos[3]( #INIT(b010))
-            dff player_y_pos[3](#INIT(b001))
+            dff player_x_pos[$clog2(COLUMN_DIMENSION)](#INIT(0))
+            dff player_y_pos[$clog2(ROW_DIMENSION)](#INIT(0))
             dff update_ram_flag(#INIT(0))
-            dff fsm[$width(States)]( #INIT(States.IDLE))
-            ws2812b_driver led_strip(#PIXEL_COUNT(PIXEL_COUNT)) 
-            
+            dff fsm[$width(States)](#INIT(States.IDLE))
+            ws2812b_driver driver(#PIXEL_COUNT(PIXEL_COUNT)) 
+            dff on_off_toggle
         }
     }
 
     // user inputs 
-    button_conditioner movement_button[4](.clk(4x{{clk}}), #CLK_FREQ(4x{{CLK_FREQ}}))
-    edge_detector movement_button_edge[4](.clk(4x{{clk}}), #RISE(4x{{1}}), #FALL(4x{{0}}))
+    button_conditioner movement_button[5](.clk(5x{{clk}}), #CLK_FREQ(5x{{CLK_FREQ}}))
+    edge_detector movement_button_edge[5](.clk(5x{{clk}}), #RISE(5x{{1}}), #FALL(5x{{0}}))
     
     
     always {
@@ -57,16 +57,18 @@ module ram_mode #(
         io_select = 4hf
         data = 0
         
-        player_x_pos.d = player_y_pos.q
+        player_x_pos.d = player_x_pos.q
         player_y_pos.d = player_y_pos.q
         update_ram_flag.d = update_ram_flag.q
+        on_off_toggle.d = on_off_toggle.q
         fsm.d = fsm.q
         
         ram.address = 0        // address 0 selected by default
         
-        movement_button.in = c{io_button[4], io_button[3], io_button[2], io_button[0]} // up, down, left, right
+        movement_button.in = c{io_button[1], io_button[4], io_button[3], io_button[2], io_button[0]} // 0: up, 2: down, 3: left, 4: right
         movement_button_edge.in = movement_button.out
-        
+        driver.update = 0 // do not refresh by default
+        driver.clear = 0 // do not clear by default
         
         // the sample matrix we use has top RIGHT as 0,0
         // check player movement update 
@@ -97,9 +99,16 @@ module ram_mode #(
                 player_x_pos.d = player_x_pos.q - 1 // right (check the orientation of your own matrix)
             }
         }
+         
+        if (movement_button_edge.out[4]){
+            if (on_off_toggle.q){
+                 driver.clear = 1
+            }
+            on_off_toggle.d = ~on_off_toggle.q
+        }
         
-        // update the ram whenever player moves 
-        if (|movement_button_edge.out){
+        // update the ram whenever player moves or io_button[0] is pressed
+        if (|movement_button_edge.out[3:0]){
             update_ram_flag.d = 1
         }
         
@@ -108,38 +117,37 @@ module ram_mode #(
         ram.player_y_pos = player_y_pos.q
         ram.update = 0 
         
-        led_strip.update = 0 // do not refresh by default
-        led_strip.clear = 0 // do not clear by default
+
         
         // connect reverser to led_strip 
-        index_reverser.input_address = led_strip.pixel_address
+        index_reverser.input_address = driver.pixel_address
         
         ram.address = 0 
         
         case (fsm.q){
             States.UPDATE_RAM:
                 // when ram is ready, and led is idling at RESET state, we load the strip
-                if (ram.ready & led_strip.reset){
+                if (ram.ready & driver.reset){
                     // clear flag 
                     update_ram_flag.d = 0
                     fsm.d = States.REFRESH
                     ram.address = index_reverser.output_address
-                    led_strip.update = 1
+                    driver.update = 1
                 }
                 
                 led[1:0] = b10
             
             States.REFRESH:
                 // if at the last FPGA clock cycle for this bit, advance the address first because our RAM needs 1 additional clock cycle to work
-                if (led_strip.next_pixel){
-                    index_reverser.input_address = led_strip.pixel_address + 1
+                if (driver.next_pixel){
+                    index_reverser.input_address = driver.pixel_address + 1
                 }
                 
                 // pass this to ram 
                 ram.address = index_reverser.output_address
                 
                 // wait until we are all done in updating our LED;
-                if (led_strip.done){
+                if (driver.done){
                     fsm.d = States.IDLE
                 }
                 led[1:0] = b11
@@ -154,16 +162,14 @@ module ram_mode #(
             
         }
         
-        led_strip.color = LEDCOLOR[ram.out_encoding] 
-        data = led_strip.data
+        driver.color = LEDCOLOR[ram.out_encoding] 
+        data = driver.data
         
         // debug 
-        io_led[0] = c{player_y_pos.q, player_x_pos.q} // player position 
+        io_led[0] = player_x_pos.q // player position 
+        io_led[1] = player_y_pos.q
+        io_led[2] = driver.pixel_address
         
-        io_led[2] = ram.debug_address_pointer
-        io_led[1] = index_reverser.output_address
-        
-        io_led[2][7] = update_ram_flag.q
         led[7:5] = ram.debug_data
     }
 }

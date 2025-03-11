@@ -68,3 +68,13 @@ Indexes of even rows (row 0, 2, 4, ...) remains the same. For instance, index 0 
 You should see the pattern getting fixed as such:
 
 /![manual-example](./images/manual-example.png)
+
+#### RAM mode
+
+Press `io_button[0]` to switch ON the screen. You should see the following:
+
+![alt](images/ram-starting.png)
+
+The "player" is the red square. The blue and red dot is just for orientation. You can move the "player" up, down, left, right using the io buttons. They are clamped to the sides.
+
+![alt](images/moving-player.gif)

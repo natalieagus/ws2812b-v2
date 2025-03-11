@@ -11,8 +11,8 @@ module data_ram #(
     input clk,  // clock
     input rst,  // reset
     input update,
-    input player_x_pos[3],
-    input player_y_pos[3],
+    input player_x_pos[$clog2(COLUMN_DIMENSION)],
+    input player_y_pos[$clog2(ROW_DIMENSION)],
     input address[$clog2($resize(ROW_DIMENSION*COLUMN_DIMENSION, 16))],
     output out_encoding[2],
     output ready,
@@ -35,7 +35,7 @@ module data_ram #(
         IDLE
     }
     
-    dff fsm[$width(States)](.clk(clk), .rst(rst), #INIT(States.IDLE))
+    dff fsm[$width(States)](.clk(clk), .rst(rst), #INIT(States.INIT))
     dff writer_pointer[$clog2(DEPTH)](#INIT(0),.clk(clk), .rst(rst))
     dff update_flag(#INIT(0), .clk(clk), .rst(rst))
     
@@ -74,8 +74,8 @@ module data_ram #(
                 if (writer_pointer.q == d0){
                     ram.write_data = b11 // white at RAM address 0, this will be your coordinate (0,0)
                 }
-                else if (writer_pointer.q == d7){
-                    ram.write_data = b10 // test blue at RAM address 7
+                else if (writer_pointer.q == (COLUMN_DIMENSION-1)){
+                    ram.write_data = b10 // test blue at the end of the first row
                 }
                 else if (&writer_pointer.q){
                     ram.write_data = b01  // test red at RAM biggest RAM address
@@ -88,7 +88,7 @@ module data_ram #(
                     // advanced to write 
                     fsm.d = States.WRITE_TOP_RIGHT
                     // set writer pointer to player position 
-                    writer_pointer.d = player_y_pos*8 + player_x_pos
+                    writer_pointer.d = player_y_pos*COLUMN_DIMENSION + player_x_pos
                 }
                 debug_data = b01
             
@@ -113,7 +113,7 @@ module data_ram #(
             States.ERASE_BOTTOM_RIGHT:
                 ram.write_enable = b1
                 ram.waddr = writer_pointer.q + COLUMN_DIMENSION
-                writer_pointer.d = player_y_pos*8 + player_x_pos // update player position    
+                writer_pointer.d = player_y_pos*COLUMN_DIMENSION + player_x_pos // update player position    
                 ram.write_data = BACKGROUND_COLOR // set back to background color    
                 fsm.d = States.WRITE_TOP_RIGHT // go to next state to draw new player location
             
