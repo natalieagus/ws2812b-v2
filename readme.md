@@ -6,6 +6,8 @@ This driver is written in Lucid V2 for Alchitry Au FPGA (v1). Open this project 
 
 Open `alchitry_au.luc` and edit `COLUMN_DIMENSION` and `ROW_DIMENSION` values to match your LED matrix. If it is a strip, leave `ROW_DIMENSION` as `1`. Compile the project and then load to your Alchitry Au board.
 
+**The default COLUMN and ROW dimension is set to 16. **
+
 ### How to use
 
 Choose a mode using `io_dip[2][2:0]`:
@@ -14,6 +16,10 @@ Choose a mode using `io_dip[2][2:0]`:
 - `001`: manual mode
 - `010`: ROM mode
 - `011`: RAM mode
+
+#### Static mode
+
+You will see a static pattern displayed on your matrix. The pattern is made for a 16x16 WS2812B matrix.
 
 #### Manual mode
 
@@ -37,4 +43,4 @@ You might need to reverse the index/pixel address of every other row since the m
 - 8 to 15 is reversed to 15 to 8
 - 24 to 31 is reversed to 31 to 24
 
-Indexes of even rows (row 0, 2, 4, ...) remains the same. For instance, index 0 to 7 remains the same, so is 16 to 23 and so on. 
+Indexes of even rows (row 0, 2, 4, ...) remains the same. For instance, index 0 to 7 remains the same, so is 16 to 23 and so on.
