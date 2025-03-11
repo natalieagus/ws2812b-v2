@@ -1,0 +1,160 @@
+/*
+This module demonstrates the purpose of using a ram, e.g: to update player location
+Player is rendered as a square (4 dots)
+Each time a new x,y player position is given, we need to store it and also erase the old one 
+*/
+module data_ram #(
+    ROW_DIMENSION = 8 : ROW_DIMENSION > 0,
+    COLUMN_DIMENSION = 8 : COLUMN_DIMENSION > 0,
+    ENCODING_AMOUNT = 4 : ENCODING_AMOUNT > 0
+)(
+    input clk,  // clock
+    input rst,  // reset
+    input update,
+    input player_x_pos[3],
+    input player_y_pos[3],
+    input address[$clog2($resize(ROW_DIMENSION*COLUMN_DIMENSION, 16))],
+    output out_encoding[2],
+    output ready,
+    output debug_address_pointer[$clog2($resize(ROW_DIMENSION*COLUMN_DIMENSION, 16))],
+    output debug_data[3]
+) {
+    
+    
+    const DEPTH =  $resize(COLUMN_DIMENSION * ROW_DIMENSION, 16)
+    enum States {
+        INIT, 
+        WRITE_TOP_RIGHT, 
+        WRITE_TOP_LEFT, 
+        WRITE_BOTTOM_RIGHT, 
+        WRITE_BOTTOM_LEFT, 
+        ERASE_TOP_RIGHT, 
+        ERASE_TOP_LEFT, 
+        ERASE_BOTTOM_LEFT, 
+        ERASE_BOTTOM_RIGHT, 
+        IDLE
+    }
+    
+    dff fsm[$width(States)](.clk(clk), .rst(rst), #INIT(States.IDLE))
+    dff writer_pointer[$clog2(DEPTH)](#INIT(0),.clk(clk), .rst(rst))
+    dff update_flag(#INIT(0), .clk(clk), .rst(rst))
+    
+    const BACKGROUND_COLOR = b00 // OFF
+    const PLAYER_COLOR = b01 // adjust this to your encoding
+    
+    simple_dual_port_ram ram(.rclk(clk), .wclk(clk), #ENTRIES(DEPTH), #WIDTH($clog2(ENCODING_AMOUNT)))
+    
+    always {
+        ram.raddr = 0
+        ram.waddr = 0
+        ram.write_data = 0
+        ram.write_enable = 0
+        out_encoding = 0
+        debug_data = 0
+        
+        // connect all dffs
+        writer_pointer.d = writer_pointer.q 
+        fsm.d = fsm.q 
+        update_flag.d = update_flag.q
+        
+        // ready is 1 if ram is not busy updating 
+        ready = fsm.q == States.IDLE
+        
+        // always catch any positive update request first
+        if (update){
+            update_flag.d = update
+        }
+        
+        case (fsm.q){
+            States.INIT: 
+                // set all values to zero to clear the RAM 
+                ram.write_enable = b1 
+                ram.waddr = writer_pointer.q 
+                // these are test dots, to know your hardware orientation
+                if (writer_pointer.q == d0){
+                    ram.write_data = b11 // white at RAM address 0, this will be your coordinate (0,0)
+                }
+                else if (writer_pointer.q == d7){
+                    ram.write_data = b10 // test blue at RAM address 7
+                }
+                else if (&writer_pointer.q){
+                    ram.write_data = b01  // test red at RAM biggest RAM address
+                }
+                else{
+                    ram.write_data = BACKGROUND_COLOR 
+                }
+                writer_pointer.d = writer_pointer.q + 1 
+                if (&writer_pointer.q){
+                    // advanced to write 
+                    fsm.d = States.WRITE_TOP_RIGHT
+                    // set writer pointer to player position 
+                    writer_pointer.d = player_y_pos*8 + player_x_pos
+                }
+                debug_data = b01
+            
+            States.ERASE_TOP_RIGHT: 
+                ram.write_enable = b1 
+                ram.waddr = writer_pointer.q // this is old player address 
+                ram.write_data = BACKGROUND_COLOR // set back to background color 
+                fsm.d = States.ERASE_TOP_LEFT
+            
+            States.ERASE_TOP_LEFT:
+                ram.write_enable = b1 
+                ram.waddr = writer_pointer.q + 1 
+                ram.write_data = BACKGROUND_COLOR // set back to background color
+                fsm.d = States.ERASE_BOTTOM_LEFT
+            
+            States.ERASE_BOTTOM_LEFT:
+                ram.write_enable = b1 
+                ram.waddr = writer_pointer.q + 1 + COLUMN_DIMENSION 
+                ram.write_data = BACKGROUND_COLOR // set back to background color
+                fsm.d = States.ERASE_BOTTOM_RIGHT
+            
+            States.ERASE_BOTTOM_RIGHT:
+                ram.write_enable = b1
+                ram.waddr = writer_pointer.q + COLUMN_DIMENSION
+                writer_pointer.d = player_y_pos*8 + player_x_pos // update player position    
+                ram.write_data = BACKGROUND_COLOR // set back to background color    
+                fsm.d = States.WRITE_TOP_RIGHT // go to next state to draw new player location
+            
+            States.WRITE_TOP_RIGHT:
+                ram.write_enable = b1 // enable the dual ram write
+                ram.waddr = writer_pointer.q // write to the respective address
+                ram.write_data = PLAYER_COLOR // write player position (red)_
+                fsm.d = States.WRITE_TOP_LEFT
+                debug_data = b10
+            
+            States.WRITE_TOP_LEFT:
+                ram.write_enable = b1 
+                ram.waddr = writer_pointer.q + 1 
+                ram.write_data = PLAYER_COLOR // set back to background color
+                fsm.d = States.WRITE_BOTTOM_LEFT
+            
+            States.WRITE_BOTTOM_LEFT:
+                ram.write_enable = b1 
+                ram.waddr = writer_pointer.q + 1 + COLUMN_DIMENSION 
+                ram.write_data = PLAYER_COLOR // set back to background color
+                fsm.d = States.WRITE_BOTTOM_RIGHT
+            
+            States.WRITE_BOTTOM_RIGHT:
+                ram.write_enable = b1
+                ram.waddr = writer_pointer.q + COLUMN_DIMENSION
+                ram.write_data = PLAYER_COLOR // write player position (red)_     
+                fsm.d = States.IDLE // go to next state to draw new player location
+            
+            States.IDLE:
+                ram.raddr = address
+                out_encoding = ram.read_data
+                debug_data = 0 // for debugging
+                fsm.d = States.IDLE // remain in state
+                if (update_flag.q){
+                    update_flag.d = 0
+                    fsm.d = States.ERASE_TOP_RIGHT
+                }
+                debug_data = c{b11, update_flag.q}
+            
+        }        
+        debug_address_pointer = writer_pointer.q
+        
+    }
+}

@@ -29,6 +29,9 @@ module alchitry_top (
             static_mode static_mode(.io_button(io_button), .io_dip(io_dip), 
                 #COLUMN_DIMENSION(COLUMN_DIMENSION), #ROW_DIMENSION(ROW_DIMENSION),
                 #PIXEL_COUNT(PIXEL_COUNT))
+            ram_mode ram_mode(.io_button(io_button), .io_dip(io_dip), 
+                #COLUMN_DIMENSION(COLUMN_DIMENSION), #ROW_DIMENSION(ROW_DIMENSION),
+                #PIXEL_COUNT(PIXEL_COUNT))
         }
     }
     
@@ -56,6 +59,13 @@ module alchitry_top (
                 data = manual_mode.data
                 led = manual_mode.led
                 io_led = manual_mode.io_led 
+            b010:
+                io_segment = ram_mode.io_segment
+                io_select = ram_mode.io_select
+                data = ram_mode.data
+                led = ram_mode.led
+                io_led = ram_mode.io_led 
+
         }
         
         
