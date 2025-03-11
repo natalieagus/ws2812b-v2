@@ -108,7 +108,7 @@ module ram_mode #(
         }
         
         // update the ram whenever player moves or io_button[0] is pressed
-        if (|movement_button_edge.out[3:0]){
+        if (|movement_button_edge.out[3:0] | (movement_button_edge.out[4] & ~on_off_toggle.q)){
             update_ram_flag.d = 1
         }
         
