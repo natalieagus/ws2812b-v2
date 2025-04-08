@@ -21,7 +21,6 @@ module ram_mode #(
     
     // OFF WHITE (11), DIM BLUE (10), DIM RED (01), OFF(00)
     const LEDCOLOR = {24h0F0F0F, 24h030000, 24h000300, 24h000000} 
-    enum States {IDLE, UPDATE_RAM, REFRESH}
     
     index_reverser index_reverser(#COLUMN_DIMENSION(COLUMN_DIMENSION), #SIZE($clog2(PIXEL_COUNT)))
     
@@ -39,7 +38,6 @@ module ram_mode #(
             dff player_x_pos[$clog2(COLUMN_DIMENSION)](#INIT(0))
             dff player_y_pos[$clog2(ROW_DIMENSION)](#INIT(0))
             dff update_ram_flag(#INIT(0))
-            dff fsm[$width(States)](#INIT(States.IDLE))
             ws2812b_driver driver(#PIXEL_COUNT(PIXEL_COUNT)) 
             dff on_off_toggle
         }
@@ -61,7 +59,6 @@ module ram_mode #(
         player_y_pos.d = player_y_pos.q
         update_ram_flag.d = update_ram_flag.q
         on_off_toggle.d = on_off_toggle.q
-        fsm.d = fsm.q
         
         ram.address = 0        // address 0 selected by default
         ram.update = 0         // do not update ram  by default
@@ -125,47 +122,7 @@ module ram_mode #(
         // and driver will ask for next address only when it is in the last cycle of the current pixel push 
         // it gives time for RAM to load the read data 
         ram.address = index_reverser.output_address 
-        
-        /**
-        ram.address = 0 
-        
-        case (fsm.q){
-            States.UPDATE_RAM:
-                // when ram is ready, and led is idling at RESET state, we load the strip
-                if (ram.ready & driver.reset){
-                    // clear flag 
-                    update_ram_flag.d = 0
-                    fsm.d = States.REFRESH
-                    ram.address = index_reverser.output_address
-                    driver.update = 1
-                }
-                
-                led[1:0] = b10
-            
-            States.REFRESH:
-                // if at the last FPGA clock cycle for this bit, advance the address first because our RAM needs 1 additional clock cycle to work
-                if (driver.next_pixel){
-                    index_reverser.input_address = driver.pixel_address + 1
-                }
-                
-                // pass this to ram 
-                ram.address = index_reverser.output_address
-                
-                // wait until we are all done in updating our LED;
-                if (driver.done){
-                    fsm.d = States.IDLE
-                }
-                led[1:0] = b11
-            
-            States.IDLE:
-                if (update_ram_flag.q){ // if there's movement update or start button pressed
-                    fsm.d = States.UPDATE_RAM
-                    ram.update = 1  // send update signal to ram first, dont clear the update flag yet 
-                }
-                led[1:0] = b01
-                index_reverser.input_address = ram.debug_address_pointer
-            
-        }**/
+
         
         driver.color = LEDCOLOR[ram.out_encoding] 
         data = driver.data
