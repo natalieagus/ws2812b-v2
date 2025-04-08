@@ -61,8 +61,8 @@ module manual_mode#(
         }
         
         if (clear_button_edge.out){
-            driver.clear = 1
-            on_off_toggle.d = ~on_off_toggle.q
+            driver.clear = 1 // clear only when we turning off             
+            on_off_toggle.d = ~on_off_toggle.q // toggle the on-off to dictate update
         }
 
         // connect reverser to driver

@@ -23,19 +23,15 @@ module data_ram #(
     
     const DEPTH =  $resize(COLUMN_DIMENSION * ROW_DIMENSION, 16)
     enum States {
-        INIT, 
-        WRITE_TOP_RIGHT, 
-        WRITE_TOP_LEFT, 
-        WRITE_BOTTOM_RIGHT, 
-        WRITE_BOTTOM_LEFT, 
-        ERASE_TOP_RIGHT, 
-        ERASE_TOP_LEFT, 
-        ERASE_BOTTOM_LEFT, 
-        ERASE_BOTTOM_RIGHT, 
+        CLEAR, 
+        WRITE_PLAYER_TOP_RIGHT, 
+        WRITE_PLAYER_TOP_LEFT, 
+        WRITE_PLAYER_BOTTOM_RIGHT, 
+        WRITE_PLAYER_BOTTOM_LEFT, 
         IDLE
     }
     
-    dff fsm[$width(States)](.clk(clk), .rst(rst), #INIT(States.INIT))
+    dff fsm[$width(States)](.clk(clk), .rst(rst), #INIT(States.CLEAR))
     dff writer_pointer[$clog2(DEPTH)](#INIT(0),.clk(clk), .rst(rst))
     dff update_flag(#INIT(0), .clk(clk), .rst(rst))
     
@@ -66,11 +62,14 @@ module data_ram #(
         }
         
         case (fsm.q){
-            States.INIT: 
+            States.CLEAR: 
                 // set all values to zero to clear the RAM 
                 ram.write_enable = b1 
                 ram.waddr = writer_pointer.q 
+                ram.write_data = BACKGROUND_COLOR 
+                
                 // these are test dots, to know your hardware orientation
+                // remove these if clauses once you already know your orientation
                 if (writer_pointer.q == d0){
                     ram.write_data = b11 // white at RAM address 0, this will be your coordinate (0,0)
                 }
@@ -80,63 +79,37 @@ module data_ram #(
                 else if (&writer_pointer.q){
                     ram.write_data = b01  // test red at RAM biggest RAM address
                 }
-                else{
-                    ram.write_data = BACKGROUND_COLOR 
-                }
+                // ****************** //
+
                 writer_pointer.d = writer_pointer.q + 1 
                 if (&writer_pointer.q){
                     // advanced to write 
-                    fsm.d = States.WRITE_TOP_RIGHT
+                    fsm.d = States.WRITE_PLAYER_TOP_RIGHT
                     // set writer pointer to player position 
                     writer_pointer.d = player_y_pos*COLUMN_DIMENSION + player_x_pos
                 }
                 debug_data = b01
-            
-            States.ERASE_TOP_RIGHT: 
-                ram.write_enable = b1 
-                ram.waddr = writer_pointer.q // this is old player address 
-                ram.write_data = BACKGROUND_COLOR // set back to background color 
-                fsm.d = States.ERASE_TOP_LEFT
-            
-            States.ERASE_TOP_LEFT:
-                ram.write_enable = b1 
-                ram.waddr = writer_pointer.q + 1 
-                ram.write_data = BACKGROUND_COLOR // set back to background color
-                fsm.d = States.ERASE_BOTTOM_LEFT
-            
-            States.ERASE_BOTTOM_LEFT:
-                ram.write_enable = b1 
-                ram.waddr = writer_pointer.q + 1 + COLUMN_DIMENSION 
-                ram.write_data = BACKGROUND_COLOR // set back to background color
-                fsm.d = States.ERASE_BOTTOM_RIGHT
-            
-            States.ERASE_BOTTOM_RIGHT:
-                ram.write_enable = b1
-                ram.waddr = writer_pointer.q + COLUMN_DIMENSION
-                writer_pointer.d = player_y_pos*COLUMN_DIMENSION + player_x_pos // update player position    
-                ram.write_data = BACKGROUND_COLOR // set back to background color    
-                fsm.d = States.WRITE_TOP_RIGHT // go to next state to draw new player location
-            
-            States.WRITE_TOP_RIGHT:
+          
+            States.WRITE_PLAYER_TOP_RIGHT:
                 ram.write_enable = b1 // enable the dual ram write
                 ram.waddr = writer_pointer.q // write to the respective address
                 ram.write_data = PLAYER_COLOR // write player position (red)_
-                fsm.d = States.WRITE_TOP_LEFT
+                fsm.d = States.WRITE_PLAYER_TOP_LEFT
                 debug_data = b10
             
-            States.WRITE_TOP_LEFT:
+            States.WRITE_PLAYER_TOP_LEFT:
                 ram.write_enable = b1 
                 ram.waddr = writer_pointer.q + 1 
                 ram.write_data = PLAYER_COLOR // set back to background color
-                fsm.d = States.WRITE_BOTTOM_LEFT
+                fsm.d = States.WRITE_PLAYER_BOTTOM_LEFT
             
-            States.WRITE_BOTTOM_LEFT:
+            States.WRITE_PLAYER_BOTTOM_LEFT:
                 ram.write_enable = b1 
                 ram.waddr = writer_pointer.q + 1 + COLUMN_DIMENSION 
                 ram.write_data = PLAYER_COLOR // set back to background color
-                fsm.d = States.WRITE_BOTTOM_RIGHT
+                fsm.d = States.WRITE_PLAYER_BOTTOM_RIGHT
             
-            States.WRITE_BOTTOM_RIGHT:
+            States.WRITE_PLAYER_BOTTOM_RIGHT:
                 ram.write_enable = b1
                 ram.waddr = writer_pointer.q + COLUMN_DIMENSION
                 ram.write_data = PLAYER_COLOR // write player position (red)_     
@@ -149,7 +122,7 @@ module data_ram #(
                 fsm.d = States.IDLE // remain in state
                 if (update_flag.q){
                     update_flag.d = 0
-                    fsm.d = States.ERASE_TOP_RIGHT
+                    fsm.d = States.CLEAR
                 }
                 debug_data = c{b11, update_flag.q}
             

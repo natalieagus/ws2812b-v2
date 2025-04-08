@@ -64,7 +64,7 @@ module ram_mode #(
         fsm.d = fsm.q
         
         ram.address = 0        // address 0 selected by default
-        
+        ram.update = 0         // do not update ram  by default
         movement_button.in = c{io_button[1], io_button[4], io_button[3], io_button[2], io_button[0]} // 0: up, 2: down, 3: left, 4: right
         movement_button_edge.in = movement_button.out
         driver.update = 0 // do not refresh by default
@@ -101,27 +101,32 @@ module ram_mode #(
         }
          
         if (movement_button_edge.out[4]){
-            if (on_off_toggle.q){
-                 driver.clear = 1
-            }
-            on_off_toggle.d = ~on_off_toggle.q
+            driver.clear = 1             
+            on_off_toggle.d = ~on_off_toggle.q // toggle the on-off to dictate update
         }
         
         // update the ram whenever player moves or io_button[0] is pressed
         if (|movement_button_edge.out[3:0] | (movement_button_edge.out[4] & ~on_off_toggle.q)){
-            update_ram_flag.d = 1
+            // update_ram_flag.d = 1
+            ram.update = 1
         }
         
         // connect player location to RAM, set update as 0 initially
         ram.player_x_pos = player_x_pos.q 
         ram.player_y_pos = player_y_pos.q
-        ram.update = 0 
-        
 
-        
         // connect reverser to led_strip 
         index_reverser.input_address = driver.pixel_address
         
+        // always read from ram, pass to driver 
+        driver.update = on_off_toggle.q
+        // safe to do even though ram read is sequential (+1 clock cycle)
+        // because driver always asks for address 0 data by default 
+        // and driver will ask for next address only when it is in the last cycle of the current pixel push 
+        // it gives time for RAM to load the read data 
+        ram.address = index_reverser.output_address 
+        
+        /**
         ram.address = 0 
         
         case (fsm.q){
@@ -160,7 +165,7 @@ module ram_mode #(
                 led[1:0] = b01
                 index_reverser.input_address = ram.debug_address_pointer
             
-        }
+        }**/
         
         driver.color = LEDCOLOR[ram.out_encoding] 
         data = driver.data

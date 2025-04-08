@@ -105,11 +105,12 @@ module ws2812b_driver #(
                 // if contents of rst_ctr.q is all 1, we choose what to do: 
                 // - remain at RESET and let LEDs display old values, or 
                 // - refresh our LEDs with new values
+                
+                pixel_address_ctr.d = 0 // reset pixel counter
                 if (&rst_ctr.q) { 
+                    rst_ctr.d = 0
                     if (update_request.q) {
                         update_request.d = 0 // clear the update request
-                        rst_ctr.d = 0
-                        pixel_address_ctr.d = 0 // reset pixel counter
                         state.d = States.SEND_PIXEL // go back to update the entire strip again 
                     }
                     
@@ -117,8 +118,6 @@ module ws2812b_driver #(
                     // it will also clear update_request although CLEAR and not SEND_PIXEL is executed
                     if (clear_request.q){
                         clear_request.d = 0 // clear the clear request
-                        rst_ctr.d = 0
-                        pixel_address_ctr.d = 0 // reset pixel counter
                         state.d = States.CLEAR // send all 0s
                     }
                 } 
