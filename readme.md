@@ -78,3 +78,7 @@ Press `io_button[0]` to switch ON the screen. You should see the following:
 The "player" is the red square. The blue and red dot is just for orientation. You can move the "player" up, down, left, right using the io buttons. They are clamped to the sides.
 
 ![alt](images/moving-player.gif)
+
+### Using with LED Strip
+
+This demo project assumed that you will use WS2812B matrix. If you use a strip, **remove** `data_ram` and `ram_mode` from this project and comment out the corresponding code in `alchitry_top`. This mode is not meant to be used with an LED strip.

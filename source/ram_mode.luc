@@ -1,6 +1,6 @@
 module ram_mode #(
     COLUMN_DIMENSION = 16d16 : COLUMN_DIMENSION > 0,
-    ROW_DIMENSION = 16d16 : ROW_DIMENSION > 0,
+    ROW_DIMENSION = 16d16 : ROW_DIMENSION > 1,
     PIXEL_COUNT = 16d256 : PIXEL_COUNT > 0,
     BUFFER_SIZE = 1024 : BUFFER_SIZE > 0 // ensure this value is larger than PIXEL_COUNT * $clog2(COLOR_ENCODING)
 ) (

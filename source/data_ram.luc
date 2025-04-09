@@ -4,7 +4,7 @@ Player is rendered as a square (4 dots)
 Each time a new x,y player position is given, we need to store it and also erase the old one 
 */
 module data_ram #(
-    ROW_DIMENSION = 8 : ROW_DIMENSION > 0,
+    ROW_DIMENSION = 8 : ROW_DIMENSION > 1,
     COLUMN_DIMENSION = 8 : COLUMN_DIMENSION > 0,
     ENCODING_AMOUNT = 4 : ENCODING_AMOUNT > 0
 )(
